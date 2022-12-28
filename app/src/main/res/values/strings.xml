@@ -11,7 +11,8 @@
 
     <!-- Strings for AddTaskActivity -->
     <!-- This etaskEntrytask has a unicode character for "..." = "&#8230;" -->
-    <string name="edit_task_description">Describe your taskEntry&#8230;</string>
+    <string name="edit_task_description">Describe your task&#8230;</string>
+    <string name="edit_task_title">Your task title&#8230;</string>
     <string name="priority_string">Priority</string>
 
     <string name="high_priority">High</string>
@@ -20,5 +21,9 @@
 
     <string name="add_button">Add</string>
     <string name="update_button">Update</string>
+    <string name="my_tasks">My Tasks</string>
+    <string name="add_task">Add Task</string>
+    <string name="update_task">Update Task</string>
+    <string name="task_count_text"> tasks for today</string>
 
 </resources>

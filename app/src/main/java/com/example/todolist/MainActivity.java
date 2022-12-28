@@ -2,17 +2,19 @@ package com.example.todolist;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.todolist.database.AppDatabase;
+import com.example.todolist.database.MainViewModel;
 import com.example.todolist.database.TaskEntry;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemClickListener {
@@ -21,6 +23,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
     private static final String TAG = MainActivity.class.getSimpleName();
     // Member variables for the adapter and RecyclerView
     private RecyclerView mRecyclerView;
+    private TextView taskCount;
     private TaskAdapter mAdapter;
     private AppDatabase mDb;
 
@@ -31,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
 
         // Set the RecyclerView to its corresponding view
         mRecyclerView = findViewById(R.id.recyclerViewTasks);
+        taskCount = findViewById(R.id.tv_total_task_count);
 
         // Set the layout for the RecyclerView to be a linear layout, which measures and
         // positions items within a RecyclerView into a linear list
@@ -40,30 +44,22 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         mAdapter = new TaskAdapter(this, this);
         mRecyclerView.setAdapter(mAdapter);
         mDb = AppDatabase.getInstance(this);
+        setupViewModel();
 
-        //DividerItemDecoration decoration = new DividerItemDecoration(getApplicationContext(), VERTICAL);
-        //mRecyclerView.addItemDecoration(decoration);
-
-        /*
-         Add a touch helper to the RecyclerView to recognize when a user swipes to delete an item.
-         An ItemTouchHelper enables touch behavior (like swipe and move) on each ViewHolder,
-         and uses callbacks to signal when a user is performing these actions.
-         */
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
-            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
                 return false;
             }
 
             // Called when a user swipes left or right on a ViewHolder
             @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
-                AppExecutors.getInstance().diskIO().execute(() ->{
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                AppExecutors.getInstance().diskIO().execute(() -> {
                     int adapterPosition = viewHolder.getAbsoluteAdapterPosition();
                     TaskEntry taskEntry = mAdapter.getTasks().get(adapterPosition);
                     mDb.taskDao().deleteTask(taskEntry);
                 });
-                retrieveTasks();
             }
         }).attachToRecyclerView(mRecyclerView);
 
@@ -81,18 +77,14 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        retrieveTasks();
-    }
-
-    private void retrieveTasks() {
-        AppExecutors.getInstance().diskIO().execute(() -> {
-            List<TaskEntry> tasks = mDb.taskDao().loadAllTask();
-            runOnUiThread(() -> {
-                mAdapter.setTasks(tasks);
-            });
+    /**
+     * Initialize main viewModel
+     */
+    private void setupViewModel() {
+        MainViewModel viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        viewModel.getTasks().observe(this, taskEntries -> {
+            mAdapter.setTasks(taskEntries);
+            setNumberOfTasks(taskEntries.size());
         });
     }
 
@@ -101,5 +93,17 @@ public class MainActivity extends AppCompatActivity implements TaskAdapter.ItemC
         Intent intent = new Intent(this, AddTaskActivity.class);
         intent.putExtra(AddTaskActivity.EXTRA_TASK_ID, itemId);
         startActivity(intent);
+    }
+
+    /**
+     * Set total number of task in
+     *
+     * @param numberOfTasks total tasks count
+     */
+    private void setNumberOfTasks(int numberOfTasks) {
+        if (numberOfTasks == 0)
+            taskCount.setText("No " + getString(R.string.task_count_text));
+        else
+            taskCount.setText(numberOfTasks + " " + getString(R.string.task_count_text));
     }
 }

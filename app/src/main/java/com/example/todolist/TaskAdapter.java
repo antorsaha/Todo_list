@@ -43,11 +43,11 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     // Member variable to handle item clicks
     final private ItemClickListener mItemClickListener;
-    // Class variables for the List that holds task data and the Context
-    private List<TaskEntry> mTaskEntries;
     private final Context mContext;
     // Date formatter
     private final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
+    // Class variables for the List that holds task data and the Context
+    private List<TaskEntry> mTaskEntries;
 
     /**
      * Constructor for the TaskAdapter that initializes the Context.
@@ -84,12 +84,12 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public void onBindViewHolder(TaskViewHolder holder, int position) {
         // Determine the values of the wanted data
         TaskEntry taskEntry = mTaskEntries.get(position);
-        String description = taskEntry.getDescription();
+        String title = taskEntry.getTitle();
         int priority = taskEntry.getPriority();
         String updatedAt = dateFormat.format(taskEntry.getUpdatedAt());
 
         //Set values
-        holder.taskDescriptionView.setText(description);
+        holder.taskDescriptionView.setText(title);
         holder.updatedAtView.setText(updatedAt);
 
         // Programmatically set the text and color for the priority TextView
@@ -136,6 +136,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         return mTaskEntries.size();
     }
 
+    public List<TaskEntry> getTasks() {
+        return mTaskEntries;
+    }
+
     /**
      * When data changes, this method updates the list of taskEntries
      * and notifies the adapter to use the new values on it
@@ -143,10 +147,6 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public void setTasks(List<TaskEntry> taskEntries) {
         mTaskEntries = taskEntries;
         notifyDataSetChanged();
-    }
-
-    public List<TaskEntry> getTasks(){
-        return mTaskEntries;
     }
 
     public interface ItemClickListener {

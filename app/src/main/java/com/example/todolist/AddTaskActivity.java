@@ -6,10 +6,14 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.todolist.database.AppDatabase;
+import com.example.todolist.database.MainViewModel;
 import com.example.todolist.database.TaskEntry;
 
 import java.util.Date;
@@ -29,11 +33,13 @@ public class AddTaskActivity extends AppCompatActivity {
     private static final int DEFAULT_TASK_ID = -1;
     // Constant for logging
     private static final String TAG = AddTaskActivity.class.getSimpleName();
-    // Fields for views
-    EditText mEditText;
-    RadioGroup mRadioGroup;
-    Button mButton;
     AppDatabase mDb;
+    // Fields for views
+    private EditText mEditText;
+    private EditText titleEditText;
+    private RadioGroup mRadioGroup;
+    private Button mButton;
+    private TextView activityTitle;
     private int mTaskId = DEFAULT_TASK_ID;
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,15 +54,18 @@ public class AddTaskActivity extends AppCompatActivity {
         }
 
         Intent intent = getIntent();
+        //Update a task
         if (intent != null && intent.hasExtra(EXTRA_TASK_ID)) {
             mButton.setText(R.string.update_button);
+            activityTitle.setText(R.string.update_task);
             if (mTaskId == DEFAULT_TASK_ID) {
                 mTaskId = intent.getIntExtra(EXTRA_TASK_ID, DEFAULT_TASK_ID);
-                AppExecutors.getInstance().diskIO().execute(()->{
-                    TaskEntry taskEntry = mDb.taskDao().loadTaskById(mTaskId);
-                    runOnUiThread(()->{
+                MainViewModel viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+                viewModel.getTaskById(mTaskId).observe(this, new Observer<TaskEntry>() {
+                    @Override
+                    public void onChanged(TaskEntry taskEntry) {
                         populateUI(taskEntry);
-                    });
+                    }
                 });
             }
         }
@@ -72,8 +81,10 @@ public class AddTaskActivity extends AppCompatActivity {
      * initViews is called from onCreate to init the member variable views
      */
     private void initViews() {
-        mEditText = findViewById(R.id.editTextTaskDescription);
+        titleEditText = findViewById(R.id.et_task_title);
+        mEditText = findViewById(R.id.et_task_description);
         mRadioGroup = findViewById(R.id.radioGroup);
+        activityTitle = findViewById(R.id.tv_add_task);
 
         mButton = findViewById(R.id.saveButton);
         mButton.setOnClickListener(new View.OnClickListener() {
@@ -92,6 +103,7 @@ public class AddTaskActivity extends AppCompatActivity {
     private void populateUI(TaskEntry task) {
         if (task == null)
             return;
+        titleEditText.setText(task.getTitle());
         mEditText.setText(task.getDescription());
         setPriorityInViews(task.getPriority());
     }
@@ -101,15 +113,16 @@ public class AddTaskActivity extends AppCompatActivity {
      * It retrieves user input and inserts that new task data into the underlying database.
      */
     public void onSaveButtonClicked() {
+        String taskTitle = titleEditText.getText().toString();
         String taskDescription = mEditText.getText().toString();
         int priority = getPriorityFromViews();
         Date date = new Date();
 
-        TaskEntry task = new TaskEntry(taskDescription, priority, date);
+        TaskEntry task = new TaskEntry(taskTitle, taskDescription, priority, date);
         AppExecutors.getInstance().diskIO().execute(() -> {
             if (mTaskId == DEFAULT_TASK_ID)
                 mDb.taskDao().insertTask(task);
-            else{
+            else {
                 task.setId(mTaskId);
                 mDb.taskDao().updateTask(task);
             }
